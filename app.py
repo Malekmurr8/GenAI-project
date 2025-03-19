@@ -4,6 +4,7 @@ import json
 from pptx import Presentation
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE_TYPE
@@ -15,6 +16,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI()
+
+# ✅ Enable CORS for Lovable frontend
+origins = [
+    "https://preview--topic-selector-saga.lovable.app",  # Lovable preview
+    "https://topic-selector-saga.lovable.app",  # Production (if applicable)
+    "http://localhost:3000",  # Allow local development
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Restrict to specific origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 # ✅ Securely load OpenAI API key
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
