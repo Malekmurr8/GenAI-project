@@ -99,14 +99,19 @@ class SlideRequest(BaseModel):
 @app.post("/generate-slide")
 def generate_slide(request: SlideRequest):
     try:
-        new_data = generate_content(request.topic, request.country, OPENAI_API_KEY)
+        # Ensure 'slides/' directory exists
+        output_folder = "slides"
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)  # ✅ This creates the folder if it doesn't exist
+
+        # Load template
         prs = Presentation("templates/Australia Benchmark.pptx")
         slide = prs.slides[0]
 
-        update_texts(slide, new_data)
-        replace_flag(slide, request.country)
-
-        output_path = f"slides/{request.topic}_{request.country}.pptx"
+        # Generate file path
+        output_path = f"{output_folder}/{request.topic}_{request.country}.pptx"
+        
+        # Save the PowerPoint file
         prs.save(output_path)
 
         return FileResponse(output_path, filename=os.path.basename(output_path))
