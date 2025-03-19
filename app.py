@@ -34,9 +34,9 @@ def generate_content(topic, country, openai_api_key, model="gpt-3.5-turbo"):
       "Rectangle 25": "One-line heading for first sub-topic",
       "Rectangle 29": "One-line heading for second sub-topic",
       "Rectangle 35": "One-line heading for third sub-topic",
-      "Rectangle 39": "Provide 3 sentences about first sub-topic. Make sure to include facts, numbers, and examples as much as possible",
-      "Rectangle 40": "Provide 3 sentences about second sub-topic. Make sure to include facts, numbers, and examples as much as possible",
-      "Rectangle 41": "Provide 3 sentences about third sub-topic. Make sure to include facts, numbers, and examples as much as possible"
+      "Rectangle 39": "Provide 2 sentences about first sub-topic. Make sure to include facts, numbers, and examples as much as possible",
+      "Rectangle 40": "Provide 2 sentences about second sub-topic. Make sure to include facts, numbers, and examples as much as possible",
+      "Rectangle 41": "Provide 2 sentences about third sub-topic. Make sure to include facts, numbers, and examples as much as possible"
     }}
     Instructions: Tailored to \"{topic}\" and \"{country}\".
     """
