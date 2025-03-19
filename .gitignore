@@ -5,9 +5,6 @@
 .venv/
 __pycache__/
 
-# Ignore generated slides
-slides/
-
 # Ignore system files
 .DS_Store
 Thumbs.db
