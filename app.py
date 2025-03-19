@@ -21,8 +21,8 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 def test_api_key():
     return {"embedded_key": OPENAI_API_KEY}
 
-
 def generate_content(topic, country, openai_api_key, model="gpt-3.5-turbo"):
+    """Generate text content using OpenAI."""
     openai.api_key = openai_api_key
     system_prompt = "You are a helpful AI that returns only valid JSON without additional commentary."
     user_prompt = f"""
@@ -58,6 +58,7 @@ FONT_SIZES = {
 BLACK_SHAPES = {"Rectangle 39", "Rectangle 40", "Rectangle 41"}
 
 def set_text_in_shape(shape, new_text, is_black, font_size_pt):
+    """Update text inside a PowerPoint shape."""
     if not shape.has_text_frame:
         return
     text_frame = shape.text_frame
@@ -71,6 +72,7 @@ def set_text_in_shape(shape, new_text, is_black, font_size_pt):
     p.alignment = PP_PARAGRAPH_ALIGNMENT.LEFT
 
 def update_texts(slide, new_data):
+    """Update all text fields in the PowerPoint slide."""
     for shape in slide.shapes:
         name = shape.name
         if name in new_data and name in FONT_SIZES:
@@ -79,11 +81,12 @@ def update_texts(slide, new_data):
             set_text_in_shape(shape, new_data[name], is_black, font_size_pt)
 
 def replace_flag(slide, country_name):
+    """Replace flag image based on the selected country."""
     flags_dir = "flags"
     filename = f"{country_name.lower()}.png"
     flag_path = os.path.join(flags_dir, filename)
     if not os.path.exists(flag_path):
-        print(f"Flag file not found: {flag_path}")
+        print(f"⚠️ Flag file not found: {flag_path}")
         return
     for shape in slide.shapes:
         if shape.name == "Picture 5" and shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
@@ -99,22 +102,37 @@ class SlideRequest(BaseModel):
 @app.post("/generate-slide")
 def generate_slide(request: SlideRequest):
     try:
-        # Ensure 'slides/' directory exists
+        print(f"🔹 Received Request: Topic={request.topic}, Country={request.country}")
+
+        # ✅ Ensure 'slides/' directory exists
         output_folder = "slides"
         if not os.path.exists(output_folder):
-            os.makedirs(output_folder)  # ✅ This creates the folder if it doesn't exist
+            os.makedirs(output_folder)
 
-        # Load template
-        prs = Presentation("templates/Australia Benchmark.pptx")
+        # ✅ Generate AI-based slide content
+        new_data = generate_content(request.topic, request.country, OPENAI_API_KEY)
+
+        # ✅ Load the template
+        template_path = "templates/Australia Benchmark.pptx"
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=500, detail=f"Template file not found: {template_path}")
+
+        prs = Presentation(template_path)
         slide = prs.slides[0]
 
-        # Generate file path
+        # ✅ Apply AI-generated text updates
+        update_texts(slide, new_data)
+
+        # ✅ Replace the flag image
+        replace_flag(slide, request.country)
+
+        # ✅ Save the modified slide
         output_path = f"{output_folder}/{request.topic}_{request.country}.pptx"
-        
-        # Save the PowerPoint file
         prs.save(output_path)
 
+        print(f"✅ Slide saved: {output_path}")
         return FileResponse(output_path, filename=os.path.basename(output_path))
 
     except Exception as e:
+        print(f"❌ Error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
