@@ -11,18 +11,21 @@ from pptx.util import Pt
 from pptx.enum.text import PP_PARAGRAPH_ALIGNMENT, MSO_VERTICAL_ANCHOR
 from dotenv import load_dotenv
 
+# ✅ Load environment variables
 load_dotenv()
 
 app = FastAPI()
 
+# ✅ Securely load OpenAI API key
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 @app.get("/test-api-key")
 def test_api_key():
+    """Endpoint to check if the API key is loaded correctly."""
     return {"embedded_key": OPENAI_API_KEY}
 
 def generate_content(topic, country, openai_api_key, model="gpt-3.5-turbo"):
-    """Generate text content using OpenAI."""
+    """Generate content using OpenAI's GPT model."""
     openai.api_key = openai_api_key
     system_prompt = "You are a helpful AI that returns only valid JSON without additional commentary."
     user_prompt = f"""
