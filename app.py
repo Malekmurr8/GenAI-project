@@ -1,6 +1,7 @@
 import openai
 import os
 import json
+import time
 from pptx import Presentation
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
@@ -19,17 +20,17 @@ app = FastAPI()
 
 # ✅ Enable CORS for Lovable frontend
 origins = [
-    "https://preview--topic-selector-saga.lovable.app",  # Lovable preview
-    "https://topic-selector-saga.lovable.app",  # Production (if applicable)
-    "http://localhost:3000",  # Allow local development
+    "https://preview--topic-selector-saga.lovable.app",
+    "https://topic-selector-saga.lovable.app",
+    "http://localhost:3000",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Restrict to specific origins
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allow all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ✅ Securely load OpenAI API key
@@ -41,7 +42,7 @@ def test_api_key():
     return {"embedded_key": OPENAI_API_KEY}
 
 def generate_content(topic, country, openai_api_key, model="gpt-3.5-turbo"):
-    """Generate content using OpenAI's GPT model."""
+    """Generate content using OpenAI's GPT model with retries."""
     openai.api_key = openai_api_key
     system_prompt = "You are a helpful AI that returns only valid JSON without additional commentary."
     user_prompt = f"""
@@ -56,19 +57,40 @@ def generate_content(topic, country, openai_api_key, model="gpt-3.5-turbo"):
     }}
     Instructions: Tailored to \"{topic}\" and \"{country}\".
     """
-    response = openai.chat.completions.create(
-        model=model,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_prompt}
-        ],
-        temperature=0.8,
-        max_tokens=1400
-    )
-    content = response.choices[0].message.content
-    if "```" in content:
-        content = content.split("```")[1].strip()
-    return json.loads(content)
+
+    retries = 3  # Retry up to 3 times
+    for attempt in range(retries):
+        try:
+            response = openai.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.8,
+                max_tokens=1400
+            )
+            content = response.choices[0].message.content
+            if "```" in content:
+                content = content.split("```")[1].strip()
+
+            new_data = json.loads(content)
+
+            # ✅ Check if all fields are present
+            required_keys = {"Title 2", "Rectangle 25", "Rectangle 29", "Rectangle 35",
+                             "Rectangle 39", "Rectangle 40", "Rectangle 41"}
+            if not all(key in new_data for key in required_keys):
+                raise ValueError("Incomplete response from LLM. Retrying...")
+
+            print(f"🔍 AI-Generated Content (Attempt {attempt+1}): {json.dumps(new_data, indent=2)}")
+            return new_data  # Return the valid data
+
+        except Exception as e:
+            print(f"❌ Error on attempt {attempt+1}: {str(e)}")
+            time.sleep(2)  # Wait before retrying
+
+    # ❌ If all retries fail, raise an error
+    raise HTTPException(status_code=500, detail="Failed to generate valid LLM content after multiple attempts.")
 
 FONT_SIZES = {
     "Title 2": 40, "Rectangle 25": 18, "Rectangle 29": 18, "Rectangle 35": 18,
